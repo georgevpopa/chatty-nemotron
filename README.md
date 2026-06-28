@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/georgevpopa/chatty-nemotron?style=social)](https://github.com/georgevpopa/chatty-nemotron/stargazers)
 
-> Multi-model AI DevOps assistant with customizable visual themes, file upload, image generation/editing, and persistent local conversation history.
+> Multi-model AI DevOps assistant with customizable visual themes, multimodal file upload, and persistent local conversation history.
 
 ---
 
@@ -19,7 +19,7 @@ cd chatty-nemotron
 # 2. Run automated setup (creates venv, installs deps, creates .env)
 python setup.py
 
-# 3. Edit .env with your API key
+# 3. Edit .env with your API keys
 notepad .env        # Windows
 nano .env           # Linux/Mac
 
@@ -41,10 +41,8 @@ The app will be available at: **http://localhost:8880**
 | **🤖 34+ AI Models** | NVIDIA NIM (30 models), OpenAI, Groq — extensible to any OpenAI-compatible API |
 | **🔄 Auto-Fallback** | If one model fails, automatically tries the next in queue |
 | **🧠 Chain of Thought** | Detects and displays reasoning (Nemotron, GPT-OSS) in a separate expander |
-| **🎨 8 Visual Themes** | 5 original + 3 professional (Midnight Navy, Forest Sage, Solar Gold) |
-| **📎 Drag & Drop Upload** | Text, images, documents — analyzed by multimodal AI |
-| **🖼️ Image Generation** | FLUX.1, Stable Diffusion XL from text prompt |
-| **🖌️ Image Editing** | Upload image + edit prompt |
+| **🎨 7 Visual Themes** | Custom backgrounds with adaptive text contrast (light/dark) |
+| **📎 Drag & Drop Upload** | Text files and images — analyzed by multimodal AI |
 | **💾 Auto-Save** | Automatically saves every conversation to local SQLite |
 | **📜 History** | Load, delete, and navigate through past conversations |
 | **⚙️ External Config** | Add models via JSON — no code changes needed |
@@ -54,10 +52,7 @@ The app will be available at: **http://localhost:8880**
 
 ## 📸 Screenshot
 
-![Chatty Nemotron Interface]
-![Screenshot](docs/screenshot.png)
-<img width="3437" height="1230" alt="screenshoot" src="https://github.com/user-attachments/assets/bd6d0df2-67a3-4dc5-a2d6-43deb3a9e79a" />
-
+![Chatty Nemotron Interface](docs/screenshot.png)
 
 ---
 
@@ -67,12 +62,11 @@ The app will be available at: **http://localhost:8880**
 |-------|------|------|
 | Minimal Light | `white.png` | Clean, minimalist |
 | Cyber Dark | `dark.jpeg` | Tech, neon cyan |
-| Crimson Style | `crimson.jpeg` | Dramatic, red |
-| Angelic White | `white 2.png` | Soft, warm |
 | Deep Purple | `purple.jpeg` | Mystic, purple |
-| **Midnight Navy** 🆕 | `navy.jpeg` | Corporate, professional |
-| **Forest Sage** 🆕 | `sage.jpeg` | Natural, elegant |
-| **Solar Gold** 🆕 | `gold.jpeg` | Luxury, premium |
+| Cybertron | `cybertron.jpeg` | Sci-fi, blue |
+| Midnight Navy | `navy.jpeg` | Corporate, professional |
+| Forest Sage | `sage.jpeg` | Natural, elegant |
+| Solar Gold | `gold.jpeg` | Luxury, premium |
 
 ---
 
@@ -94,7 +88,7 @@ Llama 3.1 70B, Mixtral 8x7B
 | File Type | Extensions | What AI Does |
 |-----------|------------|--------------|
 | **Text** | `.txt`, `.py`, `.md`, `.json`, `.yaml`, `.csv`, `.log`, `.js`, `.html`, `.css`, `.sql` | Reads and analyzes content |
-| **Images** | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | Visual analysis (VLM models) |
+| **Images** | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | Visual analysis via multimodal models (VLM) |
 | **Documents** | `.pdf`, `.docx`, `.xlsx`, `.pptx` | Detects, waits for manual description |
 
 ### How It Works
@@ -105,21 +99,7 @@ Llama 3.1 70B, Mixtral 8x7B
 4. File is sent together with the message to the AI
 5. Multimodal models (Kimi, MiniMax, Qwen, Mistral VLM) process the image directly
 
----
-
-## 🖼️ Image Generation & Editing
-
-### Generation
-1. Select model: **FLUX.1** or **Stable Diffusion XL**
-2. Write a descriptive prompt
-3. Choose size: `1024x1024`, `512x512`, `256x256`
-4. Click **"Generate"**
-
-### Editing
-1. **Upload** the original image
-2. Write an edit prompt (e.g., *"Change the sky to a sunset"*)
-3. Optional: check **"Use mask"** for selective editing
-4. Click **"Edit"**
+> **Note:** The selected model must have `"features": ["multimodal", "vision"]` in `providers.json` to analyze images.
 
 ---
 
@@ -142,6 +122,24 @@ Edit `config/providers.json` — **no code changes needed**:
 
 Restart and it appears automatically in the dropdown.
 
+### Add a Vision-Capable Model (Multimodal)
+
+For image analysis support, include the `features` field:
+
+```json
+{
+  "id": "gpt-4o",
+  "label": "GPT-4o",
+  "description": "OpenAI multimodal vision model",
+  "stream_parser": "standard",
+  "features": ["multimodal", "vision"],
+  "default_params": {
+    "temperature": 0.7,
+    "max_tokens": 4096
+  }
+}
+```
+
 ---
 
 ## 🛡️ Privacy First
@@ -160,7 +158,6 @@ Restart and it appears automatically in the dropdown.
 | Python 3.11 | Runtime |
 | Streamlit 1.40+ | UI framework |
 | OpenAI SDK | Universal API client |
-| Pillow | Image processing |
 | SQLite3 | Local persistence |
 
 ---
@@ -170,7 +167,6 @@ Restart and it appears automatically in the dropdown.
 ```bash
 docker-compose up -d
 ```
-
 ---
 
 ## 📖 Documentation
