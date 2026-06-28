@@ -53,7 +53,8 @@ The app will be available at: **http://localhost:8880**
 ## 📸 Screenshot
 
 ![Chatty Nemotron Interface]
-<img width="3430" height="1222" alt="screenshoot" src="https://github.com/user-attachments/assets/68f58ac4-bcc8-493c-bd23-e646566ebd66" />
+<img width="3422" height="1212" alt="screenshoot" src="https://github.com/user-attachments/assets/22a461a8-e726-4ea8-8948-13a713cb4371" />
+
 
 
 
