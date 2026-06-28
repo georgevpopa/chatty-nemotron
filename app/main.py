@@ -3,7 +3,6 @@ import sys
 import base64
 import json
 import sqlite3
-import io
 from datetime import datetime
 from pathlib import Path
 
@@ -16,9 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
     load_providers_config, get_available_models, get_client_for_model,
-    stream_chat, get_fallback_chain,
-    generate_image, edit_image, b64_to_image,
-    create_image_mask, resize_image_for_api  ### NOU ###
+    stream_chat, get_fallback_chain
 )
 
 st.set_page_config(page_title="Chatty Nemotron", layout="centered")
@@ -30,23 +27,22 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BG_DIR = os.path.join(BASE_DIR, "static", "backgrounds")
 DB_PATH = os.path.join(BASE_DIR, "chat_history.db")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-EDIT_DIR = os.path.join(BASE_DIR, "edits")  ### NOU ###
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(EDIT_DIR, exist_ok=True)  ### NOU ###
 
 # ============================================================
 # CONFIGURATIE TEME
 # ============================================================
 THEME_MAP = {
-    # === TEME EXISTENTE ===
     "Minimal Light": {
         "file": "white.png",
         "text": "#2a2522",
         "chat_bg": "rgba(255, 255, 255, 0.55)",
         "chat_border": "rgba(200, 190, 175, 0.6)",
         "input_bg": "rgba(255, 255, 255, 0.8)",
-        "accent": "#8b7355"
+        "accent": "#8b7355",
+        "overlay": "rgba(255,255,255,0.08)",
+        "text_shadow": "0 1px 2px rgba(0,0,0,0.1)"
     },
     "Cyber Dark": {
         "file": "dark.jpeg",
@@ -54,23 +50,9 @@ THEME_MAP = {
         "chat_bg": "rgba(0, 0, 0, 0.45)",
         "chat_border": "rgba(0, 255, 255, 0.25)",
         "input_bg": "rgba(0, 0, 0, 0.6)",
-        "accent": "#00ffff"
-    },
-    "Crimson Style": {
-        "file": "crimson.jpeg",
-        "text": "#ffffff",
-        "chat_bg": "rgba(40, 0, 0, 0.5)",
-        "chat_border": "rgba(220, 20, 60, 0.4)",
-        "input_bg": "rgba(30, 0, 0, 0.6)",
-        "accent": "#dc143c"
-    },
-    "Angelic White": {
-        "file": "white 2.png",
-        "text": "#2a2522",
-        "chat_bg": "rgba(255, 255, 255, 0.6)",
-        "chat_border": "rgba(220, 210, 195, 0.7)",
-        "input_bg": "rgba(255, 255, 255, 0.85)",
-        "accent": "#8b7355"
+        "accent": "#00ffff",
+        "overlay": "rgba(0,0,0,0.40)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
     },
     "Deep Purple": {
         "file": "purple.jpeg",
@@ -78,35 +60,107 @@ THEME_MAP = {
         "chat_bg": "rgba(30, 0, 50, 0.5)",
         "chat_border": "rgba(180, 100, 255, 0.35)",
         "input_bg": "rgba(20, 0, 35, 0.6)",
-        "accent": "#b464ff"
+        "accent": "#b464ff",
+        "overlay": "rgba(0,0,0,0.35)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
     },
-    
-    # === TEME NOI PROFESIONALE ===
+    "Cybertron": {
+        "file": "cybertron.jpeg",
+        "text": "#e0f7fa",
+        "chat_bg": "rgba(0, 20, 40, 0.6)",
+        "chat_border": "rgba(0, 200, 255, 0.35)",
+        "input_bg": "rgba(0, 25, 50, 0.75)",
+        "accent": "#00c8ff",
+        "overlay": "rgba(0,0,0,0.40)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
+    },
     "Midnight Navy": {
         "file": "navy.jpeg",
-        "text": "#e8eaf6",           # Albastru foarte deschis
-        "chat_bg": "rgba(15, 25, 50, 0.55)",      # Navy transparent
-        "chat_border": "rgba(100, 149, 237, 0.35)",  # Cornflower blue
-        "input_bg": "rgba(20, 30, 60, 0.7)",      # Navy mai inchis
-        "accent": "#6495ed"          # Cornflower blue
+        "text": "#e8eaf6",
+        "chat_bg": "rgba(15, 25, 50, 0.55)",
+        "chat_border": "rgba(100, 149, 237, 0.35)",
+        "input_bg": "rgba(20, 30, 60, 0.7)",
+        "accent": "#6495ed",
+        "overlay": "rgba(0,0,0,0.35)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
     },
     "Forest Sage": {
         "file": "sage.jpeg",
-        "text": "#f1f8e9",           # Verde foarte deschis
-        "chat_bg": "rgba(30, 50, 35, 0.5)",       # Verde padure transparent
-        "chat_border": "rgba(129, 199, 132, 0.4)",   # Sage green
-        "input_bg": "rgba(35, 55, 40, 0.65)",     # Verde mai inchis
-        "accent": "#81c784"          # Sage green
+        "text": "#f1f8e9",
+        "chat_bg": "rgba(30, 50, 35, 0.5)",
+        "chat_border": "rgba(129, 199, 132, 0.4)",
+        "input_bg": "rgba(35, 55, 40, 0.65)",
+        "accent": "#81c784",
+        "overlay": "rgba(0,0,0,0.30)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
     },
     "Solar Gold": {
         "file": "gold.jpeg",
-        "text": "#fff8e1",            # Crem-auriu
-        "chat_bg": "rgba(30, 20, 5, 0.55)",       # Negru-auriu transparent
-        "chat_border": "rgba(255, 193, 7, 0.3)",   # Amber gold
-        "input_bg": "rgba(40, 25, 5, 0.7)",       # Maro-inchis
-        "accent": "#ffc107"           # Amber gold
+        "text": "#fff8e1",
+        "chat_bg": "rgba(30, 20, 5, 0.55)",
+        "chat_border": "rgba(255, 193, 7, 0.3)",
+        "input_bg": "rgba(40, 25, 5, 0.7)",
+        "accent": "#ffc107",
+        "overlay": "rgba(0,0,0,0.40)",
+        "text_shadow": "0 1px 3px rgba(0,0,0,0.5)"
     }
 }
+
+# ============================================================
+# HEADER CU LOGO CYBERTRON + INDICATOR ANIMAT (SMIL)
+# ============================================================
+
+def get_header_html(theme_name):
+    cfg = THEME_MAP[theme_name]
+    accent = cfg["accent"]
+    cyber_b64 = get_image_base64("cybertron.jpeg")
+    
+    if theme_name == "Minimal Light":
+        logo_color = "#2a2522"
+        subtitle_color = "#5a5248"
+    else:
+        logo_color = "#ffffff"
+        subtitle_color = "rgba(255,255,255,0.75)"
+    
+    if cyber_b64:
+        logo_html = (
+            f'<img src="{cyber_b64}" '
+            f'style="width:56px;height:56px;border-radius:50%;object-fit:cover;'
+            f'border:2px solid {accent};'
+            f'box-shadow:0 0 16px {accent}90,0 0 32px {accent}40;'
+            f'margin-right:14px;vertical-align:middle;'
+            f'transition:transform 0.3s;">'
+        )
+    else:
+        logo_html = (
+            f'<span style="font-size:42px;margin-right:12px;'
+            f'filter:drop-shadow(0 0 10px {accent}70);'
+            f'vertical-align:middle;">🤖</span>'
+        )
+    
+    # Indicator pulsant SVG (SMIL animation)
+    pulse_svg = (
+        f'<svg width="20" height="20" viewBox="0 0 20 20" '
+        f'style="vertical-align:middle;margin-left:10px;">'
+        f'<circle cx="10" cy="10" r="5" fill="{accent}" opacity="0.9">'
+        f'<animate attributeName="r" values="5;8;5" dur="1.4s" repeatCount="indefinite"/>'
+        f'<animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite"/>'
+        f'</circle></svg>'
+    )
+    
+    return f"""
+    <div style="text-align: center; padding: 10px 0 4px 0; margin-bottom: 0px;">
+        <div style="font-size: 34px; font-weight: 800; color: {logo_color}; text-shadow: 0 0 20px {accent}60, 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 2px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.1; margin: 0; display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">
+            {logo_html}
+            CHATTY NEMOTRON
+            {pulse_svg}
+        </div>
+        <div style="font-size: 11px; color: {subtitle_color}; margin-top: 5px; letter-spacing: 4px; text-transform: uppercase; font-weight: 600; font-family: 'Segoe UI', system-ui, sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+            Multi-Model AI DevOps Assistant
+        </div>
+        <div style="width: 100px; height: 2px; background: linear-gradient(90deg, transparent, {accent}, transparent); margin: 10px auto; border-radius: 2px; opacity: 0.8;"></div>
+    </div>
+    """
 
 # ============================================================
 # DATABASE
@@ -200,7 +254,7 @@ def generate_title(messages):
                 for part in content:
                     if part.get("type") == "text":
                         title = part["text"][:50]
-                        if len(part["text"]) > 50:
+                        if len(part['text']) > 50:
                             title += "..."
                         return title
     return f"Chat {datetime.now().strftime('%H:%M %d/%m')}"
@@ -230,7 +284,6 @@ def process_uploaded_file(uploaded_file):
     with open(temp_path, "wb") as f:
         f.write(uploaded_file.getvalue())
     
-    # Text files
     if file_ext in ['.txt', '.py', '.md', '.json', '.yaml', '.yml', '.csv', '.log', '.sh', '.bat', '.ps1', '.js', '.html', '.css', '.xml', '.sql']:
         content = read_text_file(temp_path)
         if content:
@@ -241,7 +294,6 @@ def process_uploaded_file(uploaded_file):
                 "path": temp_path
             }
     
-    # Images
     elif file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']:
         b64_img = read_image_base64(temp_path)
         return {
@@ -252,7 +304,6 @@ def process_uploaded_file(uploaded_file):
             "path": temp_path
         }
     
-    # Documents
     elif file_ext in ['.pdf', '.docx', '.doc', '.xlsx', '.pptx']:
         size_kb = len(uploaded_file.getvalue()) / 1024
         return {
@@ -292,7 +343,7 @@ def get_custom_css(theme_name):
     img_b64 = get_image_base64(cfg["file"])
     
     if img_b64 is None:
-        bg_css = f"background: linear-gradient(135deg, {cfg['chat_bg']} 0%, #000000 100%);"
+        bg_css = f"background: linear-gradient(135deg, {cfg['chat_bg']} 0%, #1a1a2e 100%);"
     else:
         bg_css = f"background-image: url('{img_b64}'); background-size: cover; background-position: center; background-attachment: fixed;"
     
@@ -301,6 +352,10 @@ def get_custom_css(theme_name):
     [data-testid="stAppViewContainer"], [data-testid="stApp"] {{
         {bg_css}
         color: {cfg['text']} !important;
+    }}
+    
+    [data-testid="stAppViewContainer"] > .main {{
+        background: {cfg['overlay']} !important;
     }}
     
     [data-testid="stHeader"],
@@ -319,15 +374,18 @@ def get_custom_css(theme_name):
         background-color: transparent !important;
         background-image: none !important;
     }}
+    
     [data-testid="stSidebar"] {{
         background-color: {cfg['chat_bg']} !important;
         backdrop-filter: blur(20px);
         border-right: 1px solid {cfg['chat_border']};
     }}
+    
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, [data-testid="stSidebar"] span {{
         color: {cfg['text']} !important;
     }}
+    
     .stChatMessage {{
         background: {cfg['chat_bg']} !important;
         backdrop-filter: blur(12px);
@@ -336,33 +394,42 @@ def get_custom_css(theme_name):
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         color: {cfg['text']} !important;
     }}
+    
     .stChatMessage [data-testid="stMarkdownContainer"] p {{
         color: {cfg['text']} !important;
     }}
+    
     p, h1, h2, h3, h4, h5, span, 
     .stMarkdown, .stSelectbox label,
     div[data-testid="stMarkdownContainer"] p {{
         color: {cfg['text']} !important;
+        text-shadow: {cfg['text_shadow']};
     }}
+    
     div[data-baseweb="select"] > div {{
         background-color: {cfg['input_bg']} !important;
         color: {cfg['text']} !important;
         border: 1px solid {cfg['chat_border']} !important;
     }}
+    
     div[data-testid="stChatInput"] {{
         background-color: {cfg['input_bg']} !important;
         border: 1px solid {cfg['chat_border']} !important;
     }}
+    
     div[data-testid="stChatInput"] textarea {{
         color: {cfg['text']} !important;
     }}
+    
     .stButton button {{
         background: {cfg['chat_bg']} !important;
         border: 1px solid {cfg['chat_border']} !important;
         color: {cfg['text']} !important;
         border-radius: 8px;
         transition: all 0.2s ease;
+        text-shadow: {cfg['text_shadow']};
     }}
+    
     .stButton button:hover {{
         background: {cfg['input_bg']} !important;
         border-color: {cfg['accent']} !important;
@@ -370,7 +437,6 @@ def get_custom_css(theme_name):
         box-shadow: 0 0 12px {cfg['accent']}40;
     }}
     
-    /* ========== DRAG & DROP ZONE ========== */  ### NOU ###
     .drag-drop-zone {{
         border: 2px dashed {cfg['accent']}60;
         border-radius: 12px;
@@ -380,10 +446,12 @@ def get_custom_css(theme_name):
         transition: all 0.3s ease;
         cursor: pointer;
     }}
+    
     .drag-drop-zone:hover {{
         border-color: {cfg['accent']};
         background: {cfg['input_bg']};
     }}
+    
     .drag-drop-zone.dragover {{
         border-color: {cfg['accent']};
         background: {cfg['accent']}20;
@@ -408,11 +476,9 @@ if not available_models:
     st.stop()
 
 text_models = [m for m in available_models if m["provider_type"] != "image_generation"]
-image_models = [m for m in available_models if m["provider_type"] == "image_generation"]
 
 model_labels = ["Auto (Fallback automat)"] + [m["label"] for m in text_models]
 model_lookup = {m["label"]: m for m in text_models}
-image_model_lookup = {m["label"]: m for m in image_models}
 
 # ============================================================
 # INITIALIZARE SESIUNE
@@ -420,7 +486,7 @@ image_model_lookup = {m["label"]: m for m in image_models}
 init_db()
 
 if "theme" not in st.session_state:
-    st.session_state.theme = "Crimson Style"
+    st.session_state.theme = "Cybertron"
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "system", "content": "Ești un asistent DevOps de elită. Răspunzi clar și tehnic."}
@@ -431,12 +497,11 @@ if "history_refresh" not in st.session_state:
     st.session_state.history_refresh = 0
 if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = []
-if "generated_images" not in st.session_state:
-    st.session_state.generated_images = []
-if "pending_file" not in st.session_state:  ### NOU ###
+if "pending_file" not in st.session_state:
     st.session_state.pending_file = None
 
 st.markdown(get_custom_css(st.session_state.theme), unsafe_allow_html=True)
+st.markdown(get_header_html(st.session_state.theme), unsafe_allow_html=True)
 
 # ============================================================
 # SIDEBAR
@@ -472,8 +537,7 @@ with st.sidebar:
             ]
             st.session_state.current_conv_id = None
             st.session_state.uploaded_files = []
-            st.session_state.generated_images = []
-            st.session_state.pending_file = None  ### NOU ###
+            st.session_state.pending_file = None
             st.rerun()
     
     with col2:
@@ -535,153 +599,12 @@ with st.sidebar:
                 
                 st.markdown("<hr style='margin: 8px 0; opacity: 0.3;'>", unsafe_allow_html=True)
 
-    # ============================================================
-    # TAB: GENERARE IMAGINI  ### NOU ###
-    # ============================================================
-    if image_models:
-        st.markdown("---")
-        
-        # Tab selector
-        img_tab = st.radio(
-            "🎨 Mod imagine:",
-            ["Generare", "Editare"],
-            horizontal=True,
-            key="img_tab"
-        )
-        
-        img_model_label = st.selectbox(
-            "Model imagine:",
-            options=[m["label"] for m in image_models],
-            key="img_model_select"
-        )
-        
-        if img_tab == "Generare":
-            # === GENERARE ===
-            img_prompt = st.text_area(
-                "Prompt imagine:",
-                placeholder="Descrie imaginea dorita...",
-                key="img_prompt_gen"
-            )
-            img_size = st.selectbox(
-                "Dimensiune:",
-                ["1024x1024", "512x512", "256x256"],
-                key="img_size_gen"
-            )
-            
-            if st.button("🖼️ Generează", use_container_width=True, key="gen_img_btn"):
-                if img_prompt.strip():
-                    with st.spinner("Generez imaginea..."):
-                        try:
-                            model_cfg = image_model_lookup[img_model_label]
-                            client = get_client_for_model(model_cfg)
-                            images_b64 = generate_image(client, model_cfg, img_prompt, size=img_size)
-                            
-                            for idx, img_b64 in enumerate(images_b64):
-                                st.session_state.generated_images.append({
-                                    "prompt": img_prompt,
-                                    "model": img_model_label,
-                                    "b64": img_b64,
-                                    "type": "generated"
-                                })
-                                st.image(b64_to_image(img_b64), caption=f"🎨 {img_prompt[:50]}...")
-                            
-                            st.success("✅ Imagine generată!")
-                        except Exception as e:
-                            st.error(f"❌ Eroare generare: {str(e)[:200]}")
-                else:
-                    st.warning("Scrie un prompt mai întâi.")
-        
-        else:
-            # === EDITARE ===
-            st.caption("🖌️ Upload imagine + descrie ce vrei schimbat")
-            
-            edit_image_file = st.file_uploader(
-                "Alege imaginea:",
-                type=["png", "jpg", "jpeg"],
-                key="edit_img_upload"
-            )
-            
-            edit_prompt = st.text_area(
-                "Prompt editare:",
-                placeholder="Ex: Schimba cerul in apus de soare, Adauga un dragon...",
-                key="edit_prompt"
-            )
-            
-            use_mask = st.checkbox("Folosește mască (selectează zona de editat)", key="use_mask")
-            
-            if use_mask:
-                st.info("💡 Masca implicită editează întreaga imagine. Pentru selecție fină, folosește un editor extern.")
-            
-            if st.button("🖌️ Editează", use_container_width=True, key="edit_img_btn"):
-                if not edit_image_file:
-                    st.warning("Upload o imagine mai întâi.")
-                elif not edit_prompt.strip():
-                    st.warning("Scrie un prompt de editare.")
-                else:
-                    with st.spinner("Editez imaginea..."):
-                        try:
-                            # Salvează imaginea uploadată
-                            edit_path = os.path.join(EDIT_DIR, edit_image_file.name)
-                            with open(edit_path, "wb") as f:
-                                f.write(edit_image_file.getvalue())
-                            
-                            # Redimensionează dacă e prea mare
-                            resized_path = resize_image_for_api(edit_path)
-                            
-                            model_cfg = image_model_lookup[img_model_label]
-                            client = get_client_for_model(model_cfg)
-                            
-                            # Generează mască dacă e necesar
-                            mask_path = None
-                            if use_mask:
-                                _, mask = create_image_mask(resized_path)
-                                mask_path = resized_path.replace(".", "_mask.")
-                                mask.save(mask_path)
-                            
-                            # Editează
-                            images_b64 = edit_image(
-                                client, model_cfg, resized_path, edit_prompt, mask_path
-                            )
-                            
-                            for idx, img_b64 in enumerate(images_b64):
-                                st.session_state.generated_images.append({
-                                    "prompt": edit_prompt,
-                                    "model": img_model_label,
-                                    "b64": img_b64,
-                                    "type": "edited",
-                                    "original": edit_image_file.name
-                                })
-                                st.image(b64_to_image(img_b64), caption=f"🖌️ {edit_prompt[:50]}...")
-                            
-                            st.success("✅ Imagine editată!")
-                            
-                            # Curăță fișiere temporare
-                            for temp in [resized_path, mask_path]:
-                                if temp and os.path.exists(temp):
-                                    os.remove(temp)
-                                    
-                        except Exception as e:
-                            st.error(f"❌ Eroare editare: {str(e)[:200]}")
-        
-        # Afișează istoric imagini
-        if st.session_state.generated_images:
-            st.markdown("---")
-            st.caption(f"📸 {len(st.session_state.generated_images)} imagini")
-            
-            for i, img_data in enumerate(reversed(st.session_state.generated_images[-5:])):
-                icon = "🎨" if img_data.get("type") == "generated" else "🖌️"
-                with st.expander(f"{icon} #{len(st.session_state.generated_images) - i}"):
-                    st.image(b64_to_image(img_data["b64"]), caption=img_data["prompt"][:80])
-                    if img_data.get("original"):
-                        st.caption(f"Original: {img_data['original']}")
-
 # ============================================================
 # AFISARE MESAJE
 # ============================================================
 for message in st.session_state.messages:
     if message["role"] != "system":
         with st.chat_message(message["role"]):
-            # Conținut text sau multimodal
             if isinstance(message["content"], str):
                 st.write(message["content"])
             elif isinstance(message["content"], list):
@@ -690,22 +613,16 @@ for message in st.session_state.messages:
                         st.write(part["text"])
                     elif part.get("type") == "image_url":
                         st.image(part["image_url"]["url"], caption="🖼️ Imagine uploadată")
-            
-            # Imagini generate atașate mesajului
-            if message.get("image_b64"):
-                st.image(b64_to_image(message["image_b64"]), caption="🎨 Imagine generată")
 
 # ============================================================
-# DRAG & DROP ZONE + UPLOAD  ### NOU ###
+# DRAG & DROP ZONE + UPLOAD
 # ============================================================
 
 st.markdown("---")
 
-# Zona de drag & drop (file uploader stilizat)
 col_drag, col_info = st.columns([1, 3])
 
 with col_drag:
-    # File uploader principal (acceptă drag & drop nativ Streamlit)
     uploaded_file = st.file_uploader(
         "📎 Drag & Drop sau click pentru fișier",
         type=["txt", "py", "md", "json", "yaml", "csv", "png", "jpg", "jpeg", "gif", "webp", "pdf", "docx"],
@@ -713,15 +630,13 @@ with col_drag:
         key="main_file_uploader"
     )
 
-# Procesează fișierul uploadat
 file_context = ""
 file_data = None
 
 if uploaded_file is not None:
     file_data = process_uploaded_file(uploaded_file)
-    st.session_state.pending_file = file_data  # Salvează pentru când trimite mesaj
+    st.session_state.pending_file = file_data
     
-    # Preview în expander
     with st.expander(f"📎 {uploaded_file.name} - Preview (va fi trimis cu următorul mesaj)", expanded=True):
         if file_data["type"] == "image":
             st.image(f"data:{file_data['mime']};base64,{file_data['raw']}", caption=uploaded_file.name)
@@ -732,12 +647,10 @@ if uploaded_file is not None:
         else:
             st.markdown(file_data["content"])
         
-        # Buton pentru eliminare
         if st.button("❌ Elimină fișierul", key="remove_file"):
             st.session_state.pending_file = None
             st.rerun()
 
-# Afișează indicator dacă există fișier pending
 if st.session_state.pending_file:
     st.info(f"📎 Fișier pregătit: `{uploaded_file.name if uploaded_file else '...'}`. Scrie un mesaj și apasă Enter pentru a trimite.")
 
@@ -755,7 +668,6 @@ mod_selectat = st.selectbox(
 # ============================================================
 if user_input := st.chat_input("Cu ce te pot ajuta în infrastructura azi?"):
 
-    # Construiește mesajul final
     final_input = user_input
     pending = st.session_state.get("pending_file")
     
@@ -764,9 +676,7 @@ if user_input := st.chat_input("Cu ce te pot ajuta în infrastructura azi?"):
         if pending:
             st.caption(f"📎 Cu fișier: `{pending.get('path', 'upload').split('/')[-1] if isinstance(pending.get('path'), str) else 'upload'}`")
     
-    # Construiește mesajul pentru API
     if pending and pending["type"] == "image":
-        # Mesaj multimodal (text + imagine) pentru modele vision
         message_content = [
             {"type": "text", "text": user_input},
             {"type": "image_url", "image_url": {"url": f"data:{pending['mime']};base64,{pending['raw']}"}}
@@ -776,13 +686,11 @@ if user_input := st.chat_input("Cu ce te pot ajuta în infrastructura azi?"):
             "content": message_content
         })
     elif pending and pending["type"] == "text":
-        # Anexează conținutul textului la prompt
         final_input = f"{user_input}\n\n[Fișier atașat]\n```\n{pending['raw'][:3000]}\n```"
         st.session_state.messages.append({"role": "user", "content": final_input})
     else:
         st.session_state.messages.append({"role": "user", "content": user_input})
     
-    # Reset pending file
     st.session_state.pending_file = None
 
     with st.chat_message("assistant"):
@@ -832,7 +740,6 @@ if user_input := st.chat_input("Cu ce te pot ajuta în infrastructura azi?"):
             
     st.session_state.messages.append({"role": "assistant", "content": full_response})
     
-    # Auto-save
     title = generate_title(st.session_state.messages)
     conv_id = save_conversation(
         title=title,

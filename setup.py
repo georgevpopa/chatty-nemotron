@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Chatty Nemotron - Setup & Auto-Installer
-Rulează: python setup.py
+Run: python setup.py
 """
 
 import os
@@ -12,8 +12,8 @@ from pathlib import Path
 
 
 def run_command(cmd, cwd=None):
-    """Execută comandă și afișează output."""
-    print(f"\n🔄 Rulare: {' '.join(cmd)}")
+    """Execute command and display output."""
+    print(f"\n🔄 Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if result.stdout:
         print(result.stdout)
@@ -23,31 +23,31 @@ def run_command(cmd, cwd=None):
 
 
 def check_python():
-    """Verifică versiunea Python."""
+    """Check Python version."""
     version = sys.version_info
-    print(f"📍 Python detectat: {version.major}.{version.minor}.{version.micro}")
+    print(f"📍 Python detected: {version.major}.{version.minor}.{version.micro}")
 
     if version.major < 3 or (version.major == 3 and version.minor < 10):
-        print("❌ Python 3.10+ necesar!")
+        print("❌ Python 3.10+ required!")
         return False
     return True
 
 
 def create_venv():
-    """Creează virtual environment."""
+    """Create virtual environment."""
     venv_path = Path(".venv")
 
     if venv_path.exists():
-        print("✅ Virtual environment existent.")
+        print("✅ Virtual environment already exists.")
         return True
 
-    print("📦 Creare virtual environment...")
+    print("📦 Creating virtual environment...")
     return run_command([sys.executable, "-m", "venv", ".venv"])
 
 
 def install_deps():
-    """Instalează dependențele."""
-    print("📥 Instalare dependențe...")
+    """Install dependencies."""
+    print("📥 Installing dependencies...")
 
     if platform.system() == "Windows":
         pip_cmd = [".venv\\Scripts\\pip", "install", "-r", "requirements.txt"]
@@ -58,96 +58,95 @@ def install_deps():
 
 
 def create_env():
-    """Creează .env din .env.example dacă nu există."""
+    """Create .env from .env.example if it doesn't exist."""
     env_path = Path(".env")
     example_path = Path(".env.example")
 
     if env_path.exists():
-        print("✅ Fișier .env existent.")
+        print("✅ .env file already exists.")
         return True
 
     if example_path.exists():
-        print("📝 Creare .env din .env.example...")
+        print("📝 Creating .env from .env.example...")
         env_path.write_text(example_path.read_text(), encoding="utf-8")
-        print("⚠️ IMPORTANT: Editează fișierul .env și adaugă cheile tale API!")
+        print("⚠️ IMPORTANT: Edit .env and add your API keys!")
         return True
 
-    print("❌ .env.example negăsit!")
+    print("❌ .env.example not found!")
     return False
 
 
 def create_dirs():
-    """Creează directoare necesare."""
-    dirs = ["uploads", "edits", "static/backgrounds"]
+    """Create necessary directories."""
+    dirs = ["uploads", "static/backgrounds"]
     for d in dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
-    print("✅ Directoare create.")
+    print("✅ Directories created.")
 
 
 def check_images():
-    """Verifică imagini de fundal."""
+    """Check background images."""
     bg_dir = Path("static/backgrounds")
     images = list(bg_dir.glob("*"))
 
     if not images or all(f.name == ".gitkeep" for f in images):
-        print("\n🖼️ IMAGINI DE FUNDAL LIPSESC!")
-        print("   Copiază 5-8 imagini în static/backgrounds/:")
-        print("   - white.png, dark.jpeg, crimson.jpeg")
-        print("   - white 2.png, purple.jpeg")
-        print("   - navy.jpeg, sage.jpeg, gold.jpeg (opționale)")
-        print("   Sau folosește propriile imagini și editează THEME_MAP în app/main.py")
+        print("\n🖼️ BACKGROUND IMAGES MISSING!")
+        print("   Copy 7 images into static/backgrounds/:")
+        print("   - white.png, dark.jpeg, purple.jpeg")
+        print("   - cybertron.jpeg, navy.jpeg, sage.jpeg, gold.jpeg")
+        print("   Or use your own images and edit THEME_MAP in app/main.py")
         return False
 
-    print(f"✅ {len([i for i in images if i.name != '.gitkeep'])} imagini de fundal găsite.")
+    print(f"✅ {len([i for i in images if i.name != '.gitkeep'])} background images found.")
     return True
 
 
 def main():
-    """Flux principal de instalare."""
+    """Main installation flow."""
     print("=" * 60)
     print("   🤖 CHATTY NEMOTRON - SETUP")
     print("=" * 60)
 
-    # Verifică Python
+    # Check Python
     if not check_python():
         sys.exit(1)
 
-    # Creează structura
+    # Create structure
     create_dirs()
 
-    # Creează venv
+    # Create venv
     if not create_venv():
-        print("❌ Eroare la crearea virtual environment.")
+        print("❌ Error creating virtual environment.")
         sys.exit(1)
 
-    # Instalează dependențe
+    # Install dependencies
     if not install_deps():
-        print("❌ Eroare la instalarea dependențelor.")
+        print("❌ Error installing dependencies.")
         sys.exit(1)
 
-    # Creează .env
+    # Create .env
     create_env()
 
-    # Verifică imagini
+    # Check images
     has_images = check_images()
 
     # Final
     print("\n" + "=" * 60)
-    print("   ✅ SETUP COMPLET!")
+    print("   ✅ SETUP COMPLETE!")
     print("=" * 60)
 
     if not has_images:
-        print("\n⚠️ ATENȚIE: Adaugă imaginile de fundal înainte de pornire!")
+        print("\n⚠️ WARNING: Add background images before starting!")
 
-    print("\n📋 PAȘII URMĂTORI:")
-    print("   1. Editează .env și adaugă cheile API")
+    print("\n📋 NEXT STEPS:")
+    print("   1. Edit .env and add your API keys")
     if not has_images:
-        print("   2. Copiază imaginile de fundal în static/backgrounds/")
-        print("   3. Rulează: starter.bat (Windows) sau ./starter.sh (Linux/Mac)")
+        print("   2. Copy background images to static/backgrounds/")
+        print("   3. Run: starter.bat (Windows) or ./starter.sh (Linux/Mac)")
     else:
-        print("   2. Rulează: starter.bat (Windows) sau ./starter.sh (Linux/Mac)")
+        print("   2. Run: starter.bat (Windows) or ./starter.sh (Linux/Mac)")
 
-    print("\n🚀 Pornire rapidă:")
+    print("\n🚀 Quick start:")
     if platform.system() == "Windows":
         print("   starter.bat")
     else:

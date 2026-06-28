@@ -398,8 +398,7 @@
           "stream_parser": "standard",
           "features": [
             "multimodal",
-            "vision",
-            "image-to-image"
+            "vision"
           ],
           "default_params": {
             "temperature": 0.6,
@@ -486,40 +485,6 @@
           "default_params": {
             "temperature": 0.7,
             "max_tokens": 4096
-          }
-        }
-      ]
-    },
-    {
-      "name": "nvidia_image",
-      "type": "image_generation",
-      "base_url": "https://integrate.api.nvidia.com/v1",
-      "env_key": "NVIDIA_API_KEY",
-      "models": [
-        {
-          "id": "black-forest-labs/flux-1",
-          "label": "FLUX.1",
-          "description": "High-quality image generation from text",
-          "stream_parser": "none",
-          "features": [
-            "image_generation"
-          ],
-          "default_params": {
-            "n": 1,
-            "size": "1024x1024"
-          }
-        },
-        {
-          "id": "stability-ai/sdxl",
-          "label": "Stable Diffusion XL",
-          "description": "Photorealistic image generation",
-          "stream_parser": "none",
-          "features": [
-            "image_generation"
-          ],
-          "default_params": {
-            "n": 1,
-            "size": "1024x1024"
           }
         }
       ]
