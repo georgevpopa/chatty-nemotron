@@ -1,95 +1,110 @@
-# 📖 Ghid Instalare Completă — Chatty Nemotron
+# 📖 Complete Installation Guide — Chatty Nemotron
 
-## Cerințe minime
+## Minimum Requirements
 
-- **Python 3.10+** (recomandat 3.11)
-- **2 GB RAM** liberi
-- **Cheie API** (minimum una: NVIDIA / OpenAI / Groq)
+- **Python 3.10+** (recommended 3.11)
+- **2 GB free RAM**
+- **API Key** (at least one: NVIDIA / OpenAI / Groq)
 
 ---
 
 ## Windows
 
-### Pasul 1: Instalează Python
+### Step 1: Install Python
 
-1. Descarcă de la [python.org](https://www.python.org/downloads/)
-2. La instalare, **bifează** "Add Python to PATH"
-3. Verifică: `python --version` → ar trebui să afișeze 3.10+
+1. Download from [python.org](https://www.python.org/downloads/)
+2. During installation, **check** "Add Python to PATH"
+3. Verify: `python --version` → should show 3.10+
 
-### Pasul 2: Clonează repo-ul
+### Step 2: Clone the repository
 
 ```powershell
 git clone https://github.com/username/chatty-nemotron.git
 cd chatty-nemotron
 ```
 
-### Pasul 3: Rulează setup automat
+### Step 3: Run automated setup
 
 ```powershell
 python setup.py
 ```
 
-Acest script va:
-- ✅ Verifica versiunea Python
-- ✅ Crea virtual environment (`.venv/`)
-- ✅ Instala toate dependențele
-- ✅ Crea fișierul `.env` din template
-- ✅ Crea directoarele necesare
+This script will:
+- ✅ Check Python version
+- ✅ Create virtual environment (`.venv/`)
+- ✅ Install all dependencies
+- ✅ Create `.env` file from template
+- ✅ Create necessary directories
 
-### Pasul 4: Configurează cheile API
+### Step 4: Configure API keys
 
 ```powershell
 notepad .env
 ```
 
-Completează cel puțin o cheie:
+Fill in at least one key:
 ```env
-NVIDIA_API_KEY=nvapi-ta-cheie-aici
+NVIDIA_API_KEY=nvapi-your-key-here
 ```
 
-### Pasul 5: Adaugă imaginile de fundal
+### Step 5: Add background images
 
-Copiază 5-8 imagini în `static/backgrounds/`:
-- `white.png`, `dark.jpeg`, `crimson.jpeg`
-- `white 2.png`, `purple.jpeg`
-- `navy.jpeg`, `sage.jpeg`, `gold.jpeg` (opționale)
+Copy 7 images into `static/backgrounds/`:
+- `white.png`, `dark.jpeg`, `purple.jpeg`
+- `cybertron.jpeg`, `navy.jpeg`, `sage.jpeg`, `gold.jpeg`
 
-### Pasul 6: Pornește aplicația
+### Step 6: Start the application
 
 ```powershell
-# Metoda 1: Dublu-click pe starter.bat
+# Method 1: Double-click starter.bat
 starter.bat
 
-# Metoda 2: Din PowerShell
+# Method 2: From PowerShell
 .venv\Scripts\streamlit run app/main.py --server.port=8880
 ```
 
-Browserul se deschide automat la: **http://localhost:8880**
+The browser opens automatically at: **http://localhost:8880**
 
 ---
 
 ## Linux (Ubuntu/Debian)
 
+### Step 1: Install system dependencies
+
 ```bash
-# 1. Instalează dependențe sistem
 sudo apt update
 sudo apt install python3 python3-venv python3-pip git
+```
 
-# 2. Clonează
+### Step 2: Clone the repository
+
+```bash
 git clone https://github.com/username/chatty-nemotron.git
 cd chatty-nemotron
+```
 
-# 3. Setup
+### Step 3: Run setup
+
+```bash
 python3 setup.py
+```
 
-# 4. Editează .env
+### Step 4: Edit environment variables
+
+```bash
 nano .env
+```
 
-# 5. Imagini
+### Step 5: Add background images
+
+```bash
 mkdir -p static/backgrounds
-# Copiază imaginile...
+# Copy your images here...
+```
 
-# 6. Pornește
+### Step 6: Start the application
+
+```bash
 chmod +x starter.sh
 ./starter.sh
 ```
@@ -98,64 +113,83 @@ chmod +x starter.sh
 
 ## macOS
 
+### Step 1: Install Homebrew (if not already installed)
+
 ```bash
-# 1. Instalează Homebrew (dacă nu ai)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
-# 2. Instalează Python
+### Step 2: Install Python & Git
+
+```bash
 brew install python git
+```
 
-# 3. Clonează
+### Step 3: Clone the repository
+
+```bash
 git clone https://github.com/username/chatty-nemotron.git
 cd chatty-nemotron
+```
 
-# 4. Setup
+### Step 4: Run setup
+
+```bash
 python3 setup.py
+```
 
-# 5. Editează .env
+### Step 5: Edit environment variables
+
+```bash
 nano .env
+```
 
-# 6. Imagini
+### Step 6: Add background images
+
+```bash
 mkdir -p static/backgrounds
-# Copiază imaginile...
+# Copy your images here...
+```
 
-# 7. Pornește
+### Step 7: Start the application
+
+```bash
 chmod +x starter.sh
 ./starter.sh
 ```
 
 ---
 
-## Docker (opțional)
+## Docker (Optional)
 
 ```bash
-# Build
+# Build the image
 docker build -t chatty-nemotron .
 
-# Run
+# Run the container
 docker run -p 8880:8880 --env-file .env chatty-nemotron
 ```
 
-Sau cu docker-compose:
+Or using docker-compose:
 ```bash
 docker-compose up -d
 ```
 
 ---
 
-## 🐛 Depanare
+## 🐛 Troubleshooting
 
-| Problemă | Soluție |
-|----------|---------|
-| `python` nu este recunoscut | Adaugă Python în PATH sau folosește `py -3` |
-| `ImportError` la pornire | Rulează `clear_cache.bat` sau `rm -rf __pycache__` |
-| Port 8880 ocupat | `netstat -ano \| findstr :8880` apoi `taskkill /PID <pid> /F` |
-| Imagini nu apar | Verifică `static/backgrounds/` și numele fișierelor (case-sensitive) |
-| Modelul nu apare | Verifică `.env` și `config/providers.json` |
+| Issue | Solution |
+|-------|----------|
+| `python` not recognized | Add Python to PATH or use `py -3` |
+| `ImportError` on startup | Run `clear_cache.bat` or `rm -rf __pycache__` |
+| Port 8880 in use | Run `netstat -ano | findstr :8880` then `taskkill /PID <pid> /F` |
+| Images not showing | Check `static/backgrounds/` and filenames (they are case-sensitive) |
+| Model not appearing | Check `.env` and `config/providers.json` |
 
 ---
 
-## 📞 Suport
+## 📞 Support
 
-- Deschide un [Issue](https://github.com/username/chatty-nemotron/issues) pe GitHub
-- Sau contactează-ne la: contact@example.com
+- Open an [Issue](https://github.com/username/chatty-nemotron/issues) on GitHub
+- Or contact us at: contact@example.com
