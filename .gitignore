@@ -1,46 +1,33 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
+# Virtual environments
 .venv/
 venv/
-ENV/
 env/
 
-# Environment Variables
+# Environment files (SECRETS!)
 .env
+.env.local
+.env.*.local
 
-# Database & Uploads
-*.db
-*.sqlite
-*.sqlite3
-uploads/*
-!uploads/.gitkeep
-edits/*
-!edits/.gitkeep
-chat_history.db
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
 
-# IDE
-.vscode/
+# IDE / Editors
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -51,5 +38,19 @@ Thumbs.db
 
 # Logs
 *.log
-starter_log.txt
-debug_log.txt
+logs/
+
+# Docker
+.dockerignore
+
+# Streamlit specific
+.streamlit/secrets.toml
+
+# Local kubeconfig / helm values
+kubeconfig
+charts/**/values*.yaml
+!charts/**/values.yaml.example
+
+# Temporary files
+*.tmp
+*.temp

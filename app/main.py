@@ -560,6 +560,19 @@ with st.sidebar:
     
     st.markdown("---")
     
+    st.subheader("📚 RAG Knowledge Base")
+    if st.button("🔍 Indexează proiectul (RAG)", use_container_width=True):
+        with st.status("Se indexează fișierele din director...") as status:
+            st.write("Scanare fișiere și parsare text (PDF, DOCX, etc.)...")
+            from rag.indexer import index_directory
+            from core.config import Config
+            cfg = Config()
+            num_docs = index_directory(".", config=cfg)
+            status.update(label=f"✅ Indexare finalizată! {num_docs} fragmente salvate.", state="complete")
+        st.toast(f"✅ RAG actualizat cu {num_docs} documente!")
+
+    st.markdown("---")
+    
     # ============================================================
     # HISTORY
     # ============================================================
@@ -663,6 +676,8 @@ mod_selectat = st.selectbox(
     format_func=lambda x: x if x == "Auto (Fallback automat)" else f"{model_lookup[x]['label']} — {model_lookup[x]['description']}"
 )
 
+use_react_agent = st.checkbox("⚙️ **Activare Agent Autonom (ReAct Loop)** — permite AI-ului să ruleze comenzi, să citească/scrie fișiere și să rezolve sarcini DevOps autonom", value=False)
+
 # ============================================================
 # LOGICA CHAT
 # ============================================================
@@ -702,37 +717,97 @@ if user_input := st.chat_input("Cu ce te pot ajuta în infrastructura azi?"):
         fallback_models = get_fallback_chain(text_models, mod_selectat)
         st.session_state.last_model_used = mod_selectat
         
-        for model_cfg in fallback_models:
-            try:
-                client = get_client_for_model(model_cfg)
+        # Load and retrieve RAG context
+        from rag.retriever import get_rag_context
+        from core.config import Config
+        cfg = Config()
+        rag_context = get_rag_context(user_input, config=cfg)
+        
+        # Build copy of messages for prompt formatting without history pollution
+        messages_for_llm = []
+        for m in st.session_state.messages:
+            messages_for_llm.append(m.copy())
+            
+        if rag_context and len(messages_for_llm) > 0 and messages_for_llm[0]["role"] == "system":
+            # Append context safely to system message content
+            messages_for_llm[0]["content"] += "\n\n" + rag_context
+            
+        if use_react_agent:
+            from core.config import Config
+            from core.agent import ReActAgent
+            
+            cfg = Config()
+            model_cfg = fallback_models[0]
+            cfg.set("provider", model_cfg["provider"])
+            cfg.set("model", model_cfg["model_id"])
+            if model_cfg["provider"] == "llamacpp":
+                cfg.set("llamacpp_host", model_cfg["base_url"])
+            else:
+                cfg.set("ollama_host", model_cfg["base_url"])
+
+            from core.permissions import set_auto_approve_override
+            set_auto_approve_override(True)
+            
+            agent = ReActAgent(cfg)
+            agent.messages = []
+            for m in messages_for_llm[:-1]:
+                agent.messages.append(m)
                 
-                for chunk_type, text in stream_chat(client, model_cfg, st.session_state.messages):
-                    if chunk_type == "reasoning":
-                        full_reasoning += text
-                    else:
-                        full_response += text
+            with st.status("🚀 Agentul DevOps autonom pornește...") as status:
+                for event in agent.run_stream(final_input):
+                    if event["type"] == "status":
+                        status.update(label=f"🔄 {event['content']}", state="running")
+                    elif event["type"] == "tool_calls":
+                        for tc in event["content"]:
+                            st.write(f"🔧 **Rulare instrument:** `{tc['function']['name']}`")
+                            st.write(f"Arguments: `{json.dumps(tc['function']['arguments'])}`")
+                    elif event["type"] == "tool_result":
+                        st.write(f"✅ **Rezultat:**")
+                        st.code(event["result"][:2000] + ("..." if len(event["result"]) > 2000 else ""))
+                    elif event["type"] == "token":
+                        full_response += event["content"]
+                    elif event["type"] == "error":
+                        st.error(event["content"])
+                        full_response = f"Eroare: {event['content']}"
+                        break
+                status.update(label="✅ Agentul DevOps a finalizat execuția!", state="complete")
+                
+            if full_response:
+                st.markdown(full_response)
+            generare_reusita = True
+            st.session_state.last_successful_model = model_cfg["label"]
+        else:
+            for model_cfg in fallback_models:
+                try:
+                    client = get_client_for_model(model_cfg)
                     
-                    display = ""
+                    for chunk_type, text in stream_chat(client, model_cfg, messages_for_llm):
+                        if chunk_type == "reasoning":
+                            full_reasoning += text
+                        else:
+                            full_response += text
+                        
+                        display = ""
+                        if full_reasoning:
+                            display += f"🧠 *Thinking...*\n\n{full_reasoning}\n\n---\n\n"
+                        display += full_response
+                        response_placeholder.markdown(display + " ▌")
+                    
+                    response_placeholder.empty()
                     if full_reasoning:
-                        display += f"🧠 *Thinking...*\n\n{full_reasoning}\n\n---\n\n"
-                    display += full_response
-                    response_placeholder.markdown(display + " ▌")
-                
-                response_placeholder.empty()
-                if full_reasoning:
-                    with st.expander("🧠 Chain of Thought"):
-                        st.markdown(full_reasoning)
-                    st.markdown(full_response)
-                else:
-                    response_placeholder.markdown(full_response)
-                
-                generare_reusita = True
-                st.session_state.last_successful_model = model_cfg["label"]
-                break
-                
-            except Exception as e:
-                st.warning(f"⚠️ Eroare la `{model_cfg['label']}` ({model_cfg['provider']}): {str(e)[:120]}")
-                continue
+                        with st.expander("🧠 Chain of Thought"):
+                            st.markdown(full_reasoning)
+                        st.markdown(full_response)
+                    else:
+                        response_placeholder.markdown(full_response)
+                    
+                    generare_reusita = True
+                    st.session_state.last_successful_model = model_cfg["label"]
+                    break
+                    
+                except Exception as e:
+                    st.warning(f"⚠️ Eroare la `{model_cfg['label']}` ({model_cfg['provider']}): {str(e)[:120]}")
+                    continue
         
         if not generare_reusita:
             st.error("❌ Toate modelele au eșuat. Verifică conexiunea sau limitele API.")

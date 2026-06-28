@@ -398,7 +398,8 @@
           "stream_parser": "standard",
           "features": [
             "multimodal",
-            "vision"
+            "vision",
+            "image-to-image"
           ],
           "default_params": {
             "temperature": 0.6,
@@ -485,6 +486,43 @@
           "default_params": {
             "temperature": 0.7,
             "max_tokens": 4096
+          }
+        }
+      ]
+    },
+    {
+      "name": "nvidia_image",
+      "type": "image_generation",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "env_key": "NVIDIA_API_KEY",
+      "models": [
+        {
+          "id": "black-forest-labs/flux.1-schnell",
+          "label": "FLUX.1 Schnell",
+          "description": "Fast image generation (4 steps), OpenAI-compatible",
+          "stream_parser": "none",
+          "features": [
+            "image_generation"
+          ],
+          "default_params": {
+            "n": 1,
+            "size": "1024x1024",
+            "steps": 4
+          }
+        },
+        {
+          "id": "black-forest-labs/flux.1-dev",
+          "label": "FLUX.1 Dev",
+          "description": "High quality image generation (50 steps)",
+          "stream_parser": "none",
+          "features": [
+            "image_generation"
+          ],
+          "default_params": {
+            "n": 1,
+            "size": "1024x1024",
+            "steps": 50,
+            "guidance_scale": 3.5
           }
         }
       ]
