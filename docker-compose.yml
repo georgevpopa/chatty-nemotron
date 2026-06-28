@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  chatty:
+    build: .
+    ports:
+      - "8880:8880"
+    env_file:
+      - .env
+    volumes:
+      - ./chat_history.db:/app/chat_history.db
+      - ./uploads:/app/uploads
+      - ./edits:/app/edits
+      - ./static/backgrounds:/app/static/backgrounds
+    restart: unless-stopped
+    environment:
+      - STREAMLIT_SERVER_PORT=8880
+      - STREAMLIT_SERVER_HEADLESS=true
