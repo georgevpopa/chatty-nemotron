@@ -1,4 +1,3 @@
-<img width="3437" height="1230" alt="screenshoot" src="https://github.com/user-attachments/assets/e34b927d-c0b5-40e9-a2bc-f3a8c7fe0df4" />
 # 🤖 Chatty Nemotron
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
@@ -55,7 +54,7 @@ The app will be available at: **http://localhost:8880**
 
 ## 📸 Screenshot
 
-![Chatty Nemotron Interface](docs/screenshot.png)
+![Chatty Nemotron Interface](<img width="3437" height="1230" alt="screenshoot" src="https://github.com/user-attachments/assets/e34b927d-c0b5-40e9-a2bc-f3a8c7fe0df4" />)
 
 ---
 
